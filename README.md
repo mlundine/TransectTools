@@ -6,11 +6,17 @@ You need a reference shoreline and reference polygon for each section. The idea 
 
 Directory structure
 G
+
 -C
+
 --RR
+
 ----SSS
+
 -------GCRRSSS_reference_shoreline.geojson
+
 -------GCRRSSS_reference_polygon.geojson
+
 -------GCRRSSS_transects.geojson (this is the file that gets made)
 
 It should have the following attributes (longshore_length, G, C, RR, SSS, V, transect_id).
