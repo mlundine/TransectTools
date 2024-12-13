@@ -148,6 +148,7 @@ def wgs84_to_utm_file(geojson_file):
     gdf_utm = gdf_wgs84.to_crs(utm_crs)
     gdf_utm.to_file(geojson_file_utm)
     return geojson_file_utm
+
 def wgs84_to_utm_df(geo_df):
     """
     Converts wgs84 to UTM
@@ -219,10 +220,7 @@ def shapefile_to_geojson(my_shape_file, out_dir=None):
     my_geojson = gpd.read_file(my_shape_file)
     my_geojson.to_file(new_name, driver='GeoJSON')
     return new_name
-"""
-Needs to be a shapefile for input reference shoreline
-Also the shapefile can only have one line currently
-"""
+
 ## http://wikicode.wikidot.com/get-angle-of-line-between-two-points
 ## angle between two points
 def getAngle(pt1, pt2):
@@ -404,10 +402,10 @@ def re_index_with_ref_shoreline(transects_path, ref_shore_path, G, C, RR, SSS, v
         for point in shore.coords:
             points.append(point)
     ref_shore_real = shapely.LineString(points)
-    gdf = gpd.GeoDataFrame(pd.DataFrame({'OBJECTID':['1']}),geometry=[ref_shore_real], crs=ref_shore.crs)
-    f, ax = plt.subplots()
-    gdf.plot(ax=ax, column='OBJECTID', legend=True)
-    plt.show()
+##    gdf = gpd.GeoDataFrame(pd.DataFrame({'OBJECTID':['1']}),geometry=[ref_shore_real], crs=ref_shore.crs)
+##    f, ax = plt.subplots()
+##    gdf.plot(ax=ax, column='OBJECTID', legend=True)
+##    plt.show()
 
 ##    ##check that there is only one reference shoreline and that it looks correct
 ##    ref_shore_check = input('Save? yes(y) or no (n)')
@@ -447,14 +445,14 @@ def re_index_with_ref_shoreline(transects_path, ref_shore_path, G, C, RR, SSS, v
     transects['transect_id'] = names
 
     
-    transects = transects.to_crs(epsg=3857)
-    ax = transects.plot(column='distances', legend=True)
-    gdf = gdf.to_crs(epsg=3857)
-    gdf.plot(ax=ax)
-    cx.add_basemap(ax,
-               source=cx.providers.Esri.WorldImagery,
-               attribution=False)
-    plt.show()
+##    transects = transects.to_crs(epsg=3857)
+##    ax = transects.plot(column='distances', legend=True)
+##    gdf = gdf.to_crs(epsg=3857)
+##    gdf.plot(ax=ax)
+##    cx.add_basemap(ax,
+##               source=cx.providers.Esri.WorldImagery,
+##               attribution=False)
+##    plt.show()
     transects = transects.drop(columns=['distances'])
     try:
         transects = transects.drop(columns=['Shape_Length'])
@@ -466,24 +464,27 @@ def re_index_with_ref_shoreline(transects_path, ref_shore_path, G, C, RR, SSS, v
         pass
     print(transects.columns)
     print(transects.head())
-    ##Check that transects are ordered by longshore distance along reference shoreline
-    yes_or_no = input('Save? yes(y) or no (n)?')
-    if yes_or_no == 'y':
-        transects_wgs84 = utm_to_wgs84_df(transects)
-        transects_wgs84.to_file(transects_path)
-        print('transects save to '+ transects_path)
+##    ##Check that transects are ordered by longshore distance along reference shoreline
+##    yes_or_no = input('Save? yes(y) or no (n)?')
+##    if yes_or_no == 'y':
+##        transects_wgs84 = utm_to_wgs84_df(transects)
+##        transects_wgs84.to_file(transects_path)
+##        print('transects save to '+ transects_path)
+    transects_wgs84 = utm_to_wgs84_df(transects)
+    transects_wgs84.to_file(transects_path)
+    print('transects save to '+ transects_path)
 
-    ##If the order needs to be reversed, reverse them
-    reverse = input('Reverse order? yes(y) or no(n)')
-    if reverse == 'y':
-        new_gdf = transects.reindex(index=transects.index[::-1]).reset_index(drop=True)
-        new_gdf['longshore_length'] = 50*new_gdf.index
-        names = [None]*len(new_gdf)
-        for index, row in new_gdf.iterrows():
-            name = G + C + RR + SSS + version_name  + str(row['longshore_length']).zfill(6)
-            names[index] = name
-        new_gdf['transect_id'] = names
-        new_gdf.to_file(transects_path)
+##    ##If the order needs to be reversed, reverse them
+##    reverse = input('Reverse order? yes(y) or no(n)')
+##    if reverse == 'y':
+##        new_gdf = transects.reindex(index=transects.index[::-1]).reset_index(drop=True)
+##        new_gdf['longshore_length'] = 50*new_gdf.index
+##        names = [None]*len(new_gdf)
+##        for index, row in new_gdf.iterrows():
+##            name = G + C + RR + SSS + version_name  + str(row['longshore_length']).zfill(6)
+##            names[index] = name
+##        new_gdf['transect_id'] = names
+##        new_gdf.to_file(transects_path)
     return transects_path
 
 def qc(home, G, C, RR, SSS, version_name, tolerance=10, dist_int=50):
@@ -569,6 +570,7 @@ def main(ref_shoreline_path,
             os.remove(file)
     re_index_with_ref_shoreline(transects_path_final, ref_shoreline_path, G, C, RR, SSS, version_name, tolerance=10, dist_int=50)
     return transects_path_final
+
 def merge_sections(home, G, C, RR):
     subdirs = get_immediate_subdirectories(home)
     trans_gdfs = [None]*len(subdirs)
@@ -627,16 +629,3 @@ def make_and_merge_transects_for_region(home, G, C, RR, version_name, transect_s
     merged_transects = pd.concat(trans_gdfs)
     merged_transects.to_file(merged_transects_path)
     return merged_transects_path
-
-"""
-Here you need to set home to the path to the subregion you are working on
-Also set G, C, RR, version_name
-"""
-##home = r'E:\AlaskaTransectsMain\G1\C4\RR00'
-##G= '1'
-##C='4'
-##RR='00'
-##version_name='0'
-##
-####This is the function call that will make transect files for the subregion
-##make_and_merge_transects_for_region(home, G, C, RR, version_name, transect_spacing=50, transect_length=700)
