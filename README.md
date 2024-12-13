@@ -1,6 +1,6 @@
 # TransectTools
 
-Basic script to make transects with naming scheme. See the comments in the only file here for how to use.
+Basic script to make transects with naming scheme. See the comments in the Python file here for how to use.
 
 You need a reference shoreline and reference polygon for each section. The idea is to make transects along the reference shoreline and then clip to the polygon. Then it checks that they are in order. Then it updates the attributes to a naming scheme we are using at the USGS. 
 
