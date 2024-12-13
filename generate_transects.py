@@ -430,7 +430,7 @@ def re_index_with_ref_shoreline(transects_path, ref_shore_path, G, C, RR, SSS, v
             end_point = shapely.Point(ref_shore_real.coords[j])
             distance = end_point.distance(start_point)
             distance_int = intersect.distance(end_point)
-            if distance_int <=30:
+            if distance_int <=dist_int:
                 break
             else:
                 cumulative_distance = cumulative_distance + distance
@@ -459,7 +459,13 @@ def re_index_with_ref_shoreline(transects_path, ref_shore_path, G, C, RR, SSS, v
     try:
         transects = transects.drop(columns=['Shape_Length'])
     except:
-        continue
+        pass
+    try:
+        transects = transects.drop(columns=['OBJECTID'])
+    except:
+        pass
+    print(transects.columns)
+    print(transects.head())
     ##Check that transects are ordered by longshore distance along reference shoreline
     yes_or_no = input('Save? yes(y) or no (n)?')
     if yes_or_no == 'y':
@@ -478,7 +484,39 @@ def re_index_with_ref_shoreline(transects_path, ref_shore_path, G, C, RR, SSS, v
             names[index] = name
         new_gdf['transect_id'] = names
         new_gdf.to_file(transects_path)
-        
+    return transects_path
+
+def qc(home, G, C, RR, SSS, version_name, tolerance=10, dist_int=50):
+    """
+    QCs transects for whole subregion and then merges them
+    inputs:
+    home (str): path to the region directory
+    G (str): global region
+    C (str): coastal area
+    RR (str): subregion
+    transect_spacing (float): spacing in meters
+    transect_length (float): length in meters
+    outputs:
+    merged_transects (str): path to the merged transects geojson
+    """
+    subdirs = get_immediate_subdirectories(home)
+    trans_gdfs = [None]*len(subdirs)
+    c_str = G + C + RR
+    i=0
+    for SSS in subdirs:
+        folder = os.path.join(home, SSS)
+        shore_path = os.path.join(folder, c_str+SSS[3:]+'_reference_shoreline.geojson')
+        area_path = os.path.join(folder, c_str+SSS[3:]+'_reference_polygon.geojson')
+        transects_path = os.path.join(folder, c_str+SSS[3:]+'_transects.geojson')
+        transects_path = re_index_with_ref_shoreline(transects_path_final, ref_shoreline_path, G, C, RR, SSS, version_name, tolerance=10, dist_int=50)
+        gdf = gpd.read_file(transects_path)
+        trans_gdfs[i] = gdf
+        i=i+1
+    merged_transects_path = os.path.join(home, G + C + RR  + '_prelim_transects.geojson')
+    merged_transects = pd.concat(trans_gdfs)
+    merged_transects.to_file(merged_transects_path)
+    return merged_transects_path    
+
 def main(ref_shoreline_path,
          ref_area_path,
          transects_path_final,
@@ -529,9 +567,36 @@ def main(ref_shoreline_path,
             continue
         else:
             os.remove(file)
-    re_index_with_ref_shoreline(transects_path_final, ref_shoreline_path, G, C, RR, SSS, version_name, tolerance=10, dist_int=30)
+    re_index_with_ref_shoreline(transects_path_final, ref_shoreline_path, G, C, RR, SSS, version_name, tolerance=10, dist_int=50)
     return transects_path_final
+def merge_sections(home, G, C, RR):
+    subdirs = get_immediate_subdirectories(home)
+    trans_gdfs = [None]*len(subdirs)
+    area_gdfs = [None]*len(subdirs)
+    shore_gdfs = [None]*len(subdirs)
+    c_str = G + C + RR
+    i=0
+    for SSS in subdirs:
+        folder = os.path.join(home, SSS)
+        shore_path = os.path.join(folder, c_str+SSS[3:]+'_reference_shoreline.geojson')
+        area_path = os.path.join(folder, c_str+SSS[3:]+'_reference_polygon.geojson')
+        transects_path = os.path.join(folder, c_str+SSS[3:]+'_transects.geojson')
+        transects = gpd.read_file(transects_path)
+        area = gpd.read_file(area_path)
+        shore = gpd.read_file(shore_path)
+        trans_gdfs[i] = transects
+        area_gdfs[i] = area
+        shore_gdfs[i] = shore
+        i=i+1
+    transects_merged = pd.concat(trans_gdfs)
+    areas_merged = pd.concat(area_gdfs)
+    shores_merged = pd.concat(shore_gdfs)
 
+    transects_merged.to_file(os.path.join(home, c_str+'_transects.geojson'))
+    areas_merged.to_file(os.path.join(home, c_str+'_reference_polygons.geojson'))
+    shores_merged.to_file(os.path.join(home, c_str+'_reference_shorelines.geojson'))
+
+        
 def make_and_merge_transects_for_region(home, G, C, RR, version_name, transect_spacing=50, transect_length=500):
     """
     Makes transects for whole subregion and then merges them
@@ -551,10 +616,10 @@ def make_and_merge_transects_for_region(home, G, C, RR, version_name, transect_s
     i=0
     for SSS in subdirs:
         folder = os.path.join(home, SSS)
-        input_path = os.path.join(folder, c_str+SSS[3:]+'_reference_shoreline.geojson')
+        shore_path = os.path.join(folder, c_str+SSS[3:]+'_reference_shoreline.geojson')
         area_path = os.path.join(folder, c_str+SSS[3:]+'_reference_polygon.geojson')
         transects_path_final = os.path.join(folder, c_str+SSS[3:]+'_transects.geojson')
-        transect_path = main(input_path, area_path, transects_path_final, G, C, RR, SSS[3:], version_name, transect_spacing, transect_length)
+        transect_path = main(shore_path, area_path, transects_path_final, G, C, RR, SSS[3:], version_name, transect_spacing, transect_length)
         gdf = gpd.read_file(transect_path)
         trans_gdfs[i] = gdf
         i=i+1
@@ -567,11 +632,11 @@ def make_and_merge_transects_for_region(home, G, C, RR, version_name, transect_s
 Here you need to set home to the path to the subregion you are working on
 Also set G, C, RR, version_name
 """
-home = """insert/path/to/subregion/folder"""
-G= """G"""
-C="""4"""
-RR="""RR"""
-version_name="""0"""
-
-##This is the function call that will make transect files for the subregion
-make_and_merge_transects_for_region(home, G, C, RR, version_name, transect_spacing=50, transect_length=700)
+##home = r'E:\AlaskaTransectsMain\G1\C4\RR00'
+##G= '1'
+##C='4'
+##RR='00'
+##version_name='0'
+##
+####This is the function call that will make transect files for the subregion
+##make_and_merge_transects_for_region(home, G, C, RR, version_name, transect_spacing=50, transect_length=700)
