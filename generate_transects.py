@@ -15,6 +15,13 @@ import matplotlib.pyplot as plt
 warnings.filterwarnings("ignore")
 
 def get_immediate_subdirectories(a_dir):
+    """
+    Returns list of immediate subdirectories
+    inputs:
+    a_dir (str): path to the directory
+    outputs:
+    list of subdirectories
+    """
     return [name for name in os.listdir(a_dir)
             if os.path.isdir(os.path.join(a_dir, name))]
 
@@ -223,7 +230,15 @@ def shapefile_to_geojson(my_shape_file, out_dir=None):
 
 ## http://wikicode.wikidot.com/get-angle-of-line-between-two-points
 ## angle between two points
-def getAngle(pt1, pt2):
+def get_angle(pt1, pt2):
+    """
+    Gets angle between two shapely points
+    inputs:
+    pt1 (shapely point)
+    pt2 (shapely point)
+    outputs:
+    angle (float)
+    """
     x_diff = pt2.x - pt1.x
     y_diff = pt2.y - pt1.y
     return math.degrees(math.atan2(y_diff, x_diff))
@@ -231,7 +246,7 @@ def getAngle(pt1, pt2):
 
 ## start and end points of chainage tick
 ## get the first end point of a tick
-def getPoint1(pt, bearing, dist):
+def get_point1(pt, bearing, dist):
     angle = bearing + 90
     bearing = math.radians(angle)
     x = pt.x + dist * math.cos(bearing)
@@ -251,6 +266,7 @@ def make_transects(input_path,
                    transect_length):
     """
     Generates normal transects to an input line shapefile
+    (would rather this take as input a geojson but oh well for now)
     inputs:
     input_path: path to shapefile containing the input line
     transect_spacing: distance between each transect in meters
@@ -371,7 +387,7 @@ def clip_transects(transects_path, area_path):
     clipped_transects.to_file(save_path)
     return save_path
 
-def re_index_with_ref_shoreline(transects_path, ref_shore_path, G, C, RR, SSS, version_name, tolerance=50, dist_int=5):
+def re_index_with_ref_shoreline(transects_path, ref_shore_path, G, C, RR, SSS, version_name, tolerance=50, dist_int=50):
     """
     takes a set of transects with jumbled up index and uses reference shoreline
     to reset the index
@@ -386,33 +402,27 @@ def re_index_with_ref_shoreline(transects_path, ref_shore_path, G, C, RR, SSS, v
     tolerance (int, optional, default=10): tolerance for simplifying the reference shoreline, meters
     dist_int (int, optional, default=30): when to stop computing cumulative distance along ref shoreline,
                                           basically how close to get to the transect intersection before
-                                          finishing computing the cumulative distance
+                                          finishing computing the cumulative distance, using the transect spacing works well
     outputs:
     new_transects_path (str): path to the new transects
     """
+    ##load in files
     transects = gpd.read_file(transects_path)
     transects = wgs84_to_utm_df(transects)
     ref_shore = gpd.read_file(ref_shore_path)
+
+    ##smooth reference shoreline
     ref_shore = wgs84_to_utm_df(ref_shore)
     ref_shore = simplify_lines(ref_shore, tolerance=tolerance)
     ref_shore = smooth_lines_df(ref_shore)
+
+    ##if there are multiple ref shorelines, we merge into one
     ref_shore = ref_shore.sort_values('OBJECTID',ascending=True).reset_index()
     points = []
     for shore in ref_shore['geometry']:
         for point in shore.coords:
             points.append(point)
     ref_shore_real = shapely.LineString(points)
-##    gdf = gpd.GeoDataFrame(pd.DataFrame({'OBJECTID':['1']}),geometry=[ref_shore_real], crs=ref_shore.crs)
-##    f, ax = plt.subplots()
-##    gdf.plot(ax=ax, column='OBJECTID', legend=True)
-##    plt.show()
-
-##    ##check that there is only one reference shoreline and that it looks correct
-##    ref_shore_check = input('Save? yes(y) or no (n)')
-##    if ref_shore_check == 'y':
-##        ref_shore_real_wgs84 = utm_to_wgs84_df(gdf)
-##        ref_shore_real_wgs84.to_file(ref_shore_path)
-##        print('ref_shore_saved to ' + ref_shore_path)
 
     ##loop over transects
     intersections = [None]*len(transects)
@@ -435,6 +445,8 @@ def re_index_with_ref_shoreline(transects_path, ref_shore_path, G, C, RR, SSS, v
         distances[i] = cumulative_distance
     if np.any(np.isnan(distances))==True:
         return
+
+    ##sorting by distances along reference shoreline
     transects['distances'] = distances
     transects = transects.sort_values('distances').reset_index(drop=True)
     transects['longshore_length'] = 50*transects.index
@@ -444,15 +456,7 @@ def re_index_with_ref_shoreline(transects_path, ref_shore_path, G, C, RR, SSS, v
         names[index] = name
     transects['transect_id'] = names
 
-    
-##    transects = transects.to_crs(epsg=3857)
-##    ax = transects.plot(column='distances', legend=True)
-##    gdf = gdf.to_crs(epsg=3857)
-##    gdf.plot(ax=ax)
-##    cx.add_basemap(ax,
-##               source=cx.providers.Esri.WorldImagery,
-##               attribution=False)
-##    plt.show()
+    ##just dropping columns we don't want
     transects = transects.drop(columns=['distances'])
     try:
         transects = transects.drop(columns=['Shape_Length'])
@@ -462,32 +466,33 @@ def re_index_with_ref_shoreline(transects_path, ref_shore_path, G, C, RR, SSS, v
         transects = transects.drop(columns=['OBJECTID'])
     except:
         pass
+
+    ##keep these print statements so that we can check the columns look correct
     print(transects.columns)
     print(transects.head())
-##    ##Check that transects are ordered by longshore distance along reference shoreline
-##    yes_or_no = input('Save? yes(y) or no (n)?')
-##    if yes_or_no == 'y':
-##        transects_wgs84 = utm_to_wgs84_df(transects)
-##        transects_wgs84.to_file(transects_path)
-##        print('transects save to '+ transects_path)
+
+    ##save out the new transects
     transects_wgs84 = utm_to_wgs84_df(transects)
     transects_wgs84.to_file(transects_path)
-    print('transects save to '+ transects_path)
+    print('transects saved to '+ transects_path)
 
-##    ##If the order needs to be reversed, reverse them
-##    reverse = input('Reverse order? yes(y) or no(n)')
-##    if reverse == 'y':
-##        new_gdf = transects.reindex(index=transects.index[::-1]).reset_index(drop=True)
-##        new_gdf['longshore_length'] = 50*new_gdf.index
-##        names = [None]*len(new_gdf)
-##        for index, row in new_gdf.iterrows():
-##            name = G + C + RR + SSS + version_name  + str(row['longshore_length']).zfill(6)
-##            names[index] = name
-##        new_gdf['transect_id'] = names
-##        new_gdf.to_file(transects_path)
     return transects_path
 
 def reverse_order(home, transects_path, G, C, RR, SSS, version_name):
+    """
+    Reverses index of transects
+    inputs:
+    home (str): path to the subregion folder
+    transects_path (str): path ot the transects
+    G (str): global region
+    C (str): coastal area
+    RR (str): subregion
+    SSS (str): shoreline section
+    version_name (str): version
+
+    outputs:
+    transects_path (str): path to the transects
+    """
     transects = gpd.read_file(transects_path)
     new_gdf = transects.reindex(index=transects.index[::-1]).reset_index(drop=True)
     new_gdf['longshore_length'] = 50*new_gdf.index
@@ -500,6 +505,19 @@ def reverse_order(home, transects_path, G, C, RR, SSS, version_name):
     return transects_path
 
 def reverse_order_entire_region(home, G, C, RR, version_name):
+    """
+    Reverses index of transects
+    inputs:
+    home (str): path to the subregion folder
+    transects_path (str): path ot the transects
+    G (str): global region
+    C (str): coastal area
+    RR (str): subregion
+    version_name (str): version
+
+    outputs:
+    mreged_transects_path (str): path to the transects for the subregion merged all together
+    """
     subdirs = get_immediate_subdirectories(home)
     trans_gdfs = [None]*len(subdirs)
     c_str = G + C + RR
@@ -530,12 +548,17 @@ def extend_transects(home,
     """
     Extends transects seaward by a specified distance in meters
     inputs:
-    in_transects_geojson (str): path to the transects geojson file
+    transects_path (str): path to the transects geojson file
     seaward (float): extension distance in meters
     landward (float): extension distance in meters
-
+    G (str): global region
+    C (str): coastal area
+    RR (str): subregion
+    SSS (str): shoreline section
+    version_name (str): version
+    
     outputs:
-    out_transects_geojson (str): path to the output geojson file
+    transects_path (str): path to the output geojson file
     """
     ##loading things in
     in_transects = gpd.read_file(transects_path)
@@ -570,6 +593,18 @@ def extend_transects(home,
     
 
 def extend_transects_entire_region(home, seaward, landward, G, C, RR, version_name):
+    """
+    seaward (float): extension distance in meters
+    landward (float): extension distance in meters
+    G (str): global region
+    C (str): coastal area
+    RR (str): subregion
+    version_name (str): version
+
+    outputs:
+    merged_transects_path (str): all the transects merged together
+    """
+    
     subdirs = get_immediate_subdirectories(home)
     trans_gdfs = [None]*len(subdirs)
     c_str = G + C + RR
@@ -588,7 +623,21 @@ def extend_transects_entire_region(home, seaward, landward, G, C, RR, version_na
     merged_transects.to_file(merged_transects_path)
     return merged_transects_path
 
-def flip_transects(home, transects_path, seaward, landward, G, C, RR, SSS, version_name):
+def flip_transects(home, transects_path, G, C, RR, SSS, version_name):
+    """
+    Flips all the transects
+
+    inputs:
+    transects_path (str): path to the transects geojson file
+    G (str): global region
+    C (str): coastal area
+    RR (str): subregion
+    SSS (str): shoreline section
+    version_name (str): version
+
+    outputs:
+    transects_path (str): flipped transects
+    """
     in_transects = gpd.read_file(transects_path)
     for row,index in in_transects.iterrows():
         old_row = row
@@ -598,6 +647,19 @@ def flip_transects(home, transects_path, seaward, landward, G, C, RR, SSS, versi
     return transects_path
 
 def flip_transects_entire_region(home, G, C, RR, version_name):
+    """
+    Flips all the transects
+
+    inputs:
+    G (str): global region
+    C (str): coastal area
+    RR (str): subregion
+    version_name (str): version
+
+    outputs:
+    merged_transects_path (str): flipped transects for whole subregion merged together
+    """
+    
     subdirs = get_immediate_subdirectories(home)
     trans_gdfs = [None]*len(subdirs)
     c_str = G + C + RR
@@ -719,6 +781,18 @@ def main(ref_shoreline_path,
     return transects_path_final
 
 def merge_sections(home, G, C, RR):
+    """
+    Just merging all of the transects, reference shorelines, and reference polygons for a subregion
+
+    inputs:
+    home (str): subregion path
+    G (str): global region
+    C (str): coastal area
+    RR (str): subregion
+
+    outputs:
+    None
+    """
     subdirs = get_immediate_subdirectories(home)
     trans_gdfs = [None]*len(subdirs)
     area_gdfs = [None]*len(subdirs)
@@ -745,12 +819,13 @@ def merge_sections(home, G, C, RR):
     areas_merged.to_file(os.path.join(home, c_str+'_reference_polygons.geojson'))
     shores_merged.to_file(os.path.join(home, c_str+'_reference_shorelines.geojson'))
 
+    return None
         
 def make_and_merge_transects_for_region(home, G, C, RR, version_name, transect_spacing=50, transect_length=500):
     """
     Makes transects for whole subregion and then merges them
     inputs:
-    home (str): path to the region directory
+    home (str): path to the subregion directory
     G (str): global region
     C (str): coastal area
     RR (str): subregion
