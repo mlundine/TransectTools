@@ -93,72 +93,38 @@ class Window(QMainWindow):
 
                 
     def flip_transects_action(self, subregion_bool, G, C, RR, SSS, version_name):
-##        if subregion_bool == False:
-##            options = QFileDialog.Options()
-##            options |= QFileDialog.DontUseNativeDialog
-##            home_dir = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
-##            if home_dir:
-##                ref_shoreline_path = os.path.join(home_dir, G+C+RR+SSS+'_reference_shoreline.geojson')
-##                ref_area_path = os.path.join(home_dir, G+C+RR+SSS+'_reference_polygon.geojson')
-##                transects_path_final = os.path.join(home_dir, G+C+RR+SSS+'_transects.geojson'))
-##                gt.main(ref_shoreline_path,
-##                        ref_area_path,
-##                        transects_path_final,
-##                        G,
-##                        C,
-##                        RR,
-##                        SSS,
-##                        version_name,
-##                        spacing,
-##                        length
-##                        )
-##        else:
-##            options = QFileDialog.Options()
-##            options |= QFileDialog.DontUseNativeDialog
-##            home_dir = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
-##            if home_dir:
-##                gt.make_and_merge_transects_for_region(home_dir,
-##                                                       G,
-##                                                       C,
-##                                                       RR,
-##                                                       version_name,
-##                                                       transect_spacing=spacing,
-##                                                       transect_length=length)
-        return None
+        if subregion_bool == False:
+            options = QFileDialog.Options()
+            options |= QFileDialog.DontUseNativeDialog
+            home_dir = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
+            if home_dir:
+                ref_shoreline_path = os.path.join(home_dir, G+C+RR+SSS+'_reference_shoreline.geojson')
+                ref_area_path = os.path.join(home_dir, G+C+RR+SSS+'_reference_polygon.geojson')
+                transects_path_final = os.path.join(home_dir, G+C+RR+SSS+'_transects.geojson')
+                gt.flip_transects(home_dir, transects_path_final, G, C, RR, SSS, version_name)
+        else:
+            options = QFileDialog.Options()
+            options |= QFileDialog.DontUseNativeDialog
+            home_dir = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
+            if home_dir:
+                gt.flip_transects_entire_region(home, G, C, RR, version_name)
                 
     def extend_transects_action(self, subregion_bool, seaward_val, landward_val, G, C, RR, SSS, version_name):
-##        if subregion_bool == False:
-##            options = QFileDialog.Options()
-##            options |= QFileDialog.DontUseNativeDialog
-##            home_dir = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
-##            if home_dir:
-##                ref_shoreline_path = os.path.join(home_dir, G+C+RR+SSS+'_reference_shoreline.geojson')
-##                ref_area_path = os.path.join(home_dir, G+C+RR+SSS+'_reference_polygon.geojson')
-##                transects_path_final = os.path.join(home_dir, G+C+RR+SSS+'_transects.geojson'))
-##                gt.main(ref_shoreline_path,
-##                        ref_area_path,
-##                        transects_path_final,
-##                        G,
-##                        C,
-##                        RR,
-##                        SSS,
-##                        version_name,
-##                        spacing,
-##                        length
-##                        )
-##        else:
-##            options = QFileDialog.Options()
-##            options |= QFileDialog.DontUseNativeDialog
-##            home_dir = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
-##            if home_dir:
-##                gt.make_and_merge_transects_for_region(home_dir,
-##                                                       G,
-##                                                       C,
-##                                                       RR,
-##                                                       version_name,
-##                                                       transect_spacing=spacing,
-##                                                       transect_length=length)
-        return None
+        if subregion_bool == False:
+            options = QFileDialog.Options()
+            options |= QFileDialog.DontUseNativeDialog
+            home_dir = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
+            if home_dir:
+                ref_shoreline_path = os.path.join(home_dir, G+C+RR+SSS+'_reference_shoreline.geojson')
+                ref_area_path = os.path.join(home_dir, G+C+RR+SSS+'_reference_polygon.geojson')
+                transects_path_final = os.path.join(home_dir, G+C+RR+SSS+'_transects.geojson')
+                gt.extend_transects(home_dir, transects_path_final, seaward_val, landward_val, G, C, RR, SSS, version_name)
+        else:
+            options = QFileDialog.Options()
+            options |= QFileDialog.DontUseNativeDialog
+            home_dir = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
+            if home_dir:
+                gt.extend_transects_entire_region(home_dir, seaward_val, landward_val, G, C, RR, version_name)
         
     def home(self):
         self.scroll = QScrollArea()             # Scroll Area which contains the widgets, set as the centralWidget

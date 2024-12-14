@@ -487,6 +487,104 @@ def re_index_with_ref_shoreline(transects_path, ref_shore_path, G, C, RR, SSS, v
 ##        new_gdf.to_file(transects_path)
     return transects_path
 
+def extend_transects(home,
+                     transects_path,
+                     seaward,
+                     landward,
+                     G,
+                     C,
+                     RR,
+                     SSS,
+                     version_name):
+    """
+    Extends transects seaward by a specified distance in meters
+    inputs:
+    in_transects_geojson (str): path to the transects geojson file
+    seaward (float): extension distance in meters
+    landward (float): extension distance in meters
+
+    outputs:
+    out_transects_geojson (str): path to the output geojson file
+    """
+    ##loading things in
+    in_transects = gpd.read_file(transects_path)
+    
+    crs_wgs84 = in_transects.crs
+    crs_utm = in_transects.estimate_utm_crs()
+    in_transects_utm = in_transects.to_crs(crs_utm)
+    
+    out_transects_utm = in_transects_utm.copy()
+
+    new_lines = [None]*len(in_transects_utm)
+    ##loop over all transects
+    for i in range(len(in_transects_utm)):
+        transect = in_transects_utm.iloc[i]
+        first = transect.geometry.coords[0]
+        last = transect.geometry.coords[1]
+        ##get bearing and extend end of transect
+        angle = np.arctan2(last[1] - first[1], last[0] - first[0])
+        ##add length to end of transects
+        new_end_x = last[0]+seaward*np.cos(angle)
+        new_end_y = last[1]+seaward*np.sin(angle)
+        new_start_x = first[0]-landward*np.cos(angle)
+        new_start_y = first[1]-landward*np.sin(angle)
+        newLine = shapely.LineString([(new_start_x, new_start_y), (new_end_x, new_end_y)])
+        new_lines[i] = newLine
+    out_transects_utm['geometry'] = new_lines
+    ##project into wgs84, save file
+    out_transects_wgs84 = out_transects_utm.to_crs(crs_wgs84)
+    out_transects_wgs84.to_file(transects_path)
+
+    return transects_path
+    
+
+def extend_transects_entire_region(home, seaward, landward, G, C, RR, version_name):
+    subdirs = get_immediate_subdirectories(home)
+    trans_gdfs = [None]*len(subdirs)
+    c_str = G + C + RR
+    i=0
+    for SSS in subdirs:
+        folder = os.path.join(home, SSS)
+        shore_path = os.path.join(folder, c_str+SSS[3:]+'_reference_shoreline.geojson')
+        area_path = os.path.join(folder, c_str+SSS[3:]+'_reference_polygon.geojson')
+        transects_path = os.path.join(folder, c_str+SSS[3:]+'_transects.geojson')
+        transects_path = extend_transects(home, transects_path, seaward, landward, G, C, RR, SSS, version_name)
+        gdf = gpd.read_file(transects_path)
+        trans_gdfs[i] = gdf
+        i=i+1
+    merged_transects_path = os.path.join(home, G + C + RR  + '_prelim_transects.geojson')
+    merged_transects = pd.concat(trans_gdfs)
+    merged_transects.to_file(merged_transects_path)
+    return merged_transects_path
+
+def flip_transects(home, transects_path, seaward, landward, G, C, RR, SSS, version_name):
+    in_transects = gpd.read_file(transects_path)
+    for row,index in in_transects.iterrows():
+        old_row = row
+        new_row = row.reverse()
+        in_transects[index] = new_row
+    in_transects.to_file(transects_path)
+    return transects_path
+
+def flip_transects_entire_region(home, G, C, RR, version_name):
+    subdirs = get_immediate_subdirectories(home)
+    trans_gdfs = [None]*len(subdirs)
+    c_str = G + C + RR
+    i=0
+    for SSS in subdirs:
+        folder = os.path.join(home, SSS)
+        shore_path = os.path.join(folder, c_str+SSS[3:]+'_reference_shoreline.geojson')
+        area_path = os.path.join(folder, c_str+SSS[3:]+'_reference_polygon.geojson')
+        transects_path = os.path.join(folder, c_str+SSS[3:]+'_transects.geojson')
+        transects_path = flip_transects(home, transects_path, G, C, RR, SSS, version_name)
+        gdf = gpd.read_file(transects_path)
+        trans_gdfs[i] = gdf
+        i=i+1
+    merged_transects_path = os.path.join(home, G + C + RR  + '_prelim_transects.geojson')
+    merged_transects = pd.concat(trans_gdfs)
+    merged_transects.to_file(merged_transects_path)
+    return merged_transects_path
+
 def qc(home, G, C, RR, SSS, version_name, tolerance=10, dist_int=50):
     """
     QCs transects for whole subregion and then merges them
@@ -548,16 +646,34 @@ def main(ref_shoreline_path,
     transects = gpd.read_file(transects_path)
     transects['longshore_length'] = transects.index*50
     names = [None]*len(transects)
+    geometries = list(transects['geometry'])
+    transects['longshore_length'] = transects.index*50
+    names = [None]*len(transects)
+    geometries = list(transects['geometry'])
     for index, row in transects.iterrows():
         name = G+C+RR+SSS+version_name+str(row['longshore_length']).zfill(6)
-        names[index] = name
+        if type(row['geometry']) == shapely.geometry.multilinestring.MultiLineString:
+            lines_geoms = row['geometry'].geoms
+            lengths={}
+            k=0
+            for l in lines_geoms:
+                length = l.length
+                lengths[k] = length
+                k=k+1
+            max_key = max(lengths, key=lambda k: lengths[k])
+            actual_line = lines_geoms[max_key]
+            geometries[index] = actual_line
+    transects['geometry'] = geometries
     transects['G'] = [G]*len(transects)
     transects['C'] = [C]*len(transects)
     transects['RR'] = [RR]*len(transects)
     transects['SSS'] = [SSS]*len(transects)
     transects['V'] = [version_name]*len(transects)
     transects['transect_id'] = names
-    transects = transects.drop(columns=['CHAINAGE'])
+    try:
+        transects = transects.drop(columns=['CHAINAGE'])
+    except:
+        pass
     transects.to_file(transects_path_final)
     files_to_keep = [transects_path_final, ref_shoreline_path, ref_area_path]
     folder = os.path.dirname(transects_path_final)
