@@ -487,6 +487,37 @@ def re_index_with_ref_shoreline(transects_path, ref_shore_path, G, C, RR, SSS, v
 ##        new_gdf.to_file(transects_path)
     return transects_path
 
+def reverse_order(home, transects_path, G, C, RR, SSS, version_name):
+    transects = gpd.read_file(transects_path)
+    new_gdf = transects.reindex(index=transects.index[::-1]).reset_index(drop=True)
+    new_gdf['longshore_length'] = 50*new_gdf.index
+    names = [None]*len(new_gdf)
+    for index, row in new_gdf.iterrows():
+        name = G + C + RR + SSS + version_name  + str(row['longshore_length']).zfill(6)
+        names[index] = name
+    new_gdf['transect_id'] = names
+    new_gdf.to_file(transects_path)
+    return transects_path
+
+def reverse_order_entire_region(home, G, C, RR, version_name):
+    subdirs = get_immediate_subdirectories(home)
+    trans_gdfs = [None]*len(subdirs)
+    c_str = G + C + RR
+    i=0
+    for SSS in subdirs:
+        folder = os.path.join(home, SSS)
+        shore_path = os.path.join(folder, c_str+SSS[3:]+'_reference_shoreline.geojson')
+        area_path = os.path.join(folder, c_str+SSS[3:]+'_reference_polygon.geojson')
+        transects_path = os.path.join(folder, c_str+SSS[3:]+'_transects.geojson')
+        transects_path = reverse_order(home, transects_path, G, C, RR, SSS, version_name)
+        gdf = gpd.read_file(transects_path)
+        trans_gdfs[i] = gdf
+        i=i+1
+    merged_transects_path = os.path.join(home, G + C + RR  + '_prelim_transects.geojson')
+    merged_transects = pd.concat(trans_gdfs)
+    merged_transects.to_file(merged_transects_path)
+    return merged_transects_path
+
 def extend_transects(home,
                      transects_path,
                      seaward,

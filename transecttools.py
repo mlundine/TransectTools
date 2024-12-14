@@ -125,7 +125,23 @@ class Window(QMainWindow):
             home_dir = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
             if home_dir:
                 gt.extend_transects_entire_region(home_dir, seaward_val, landward_val, G, C, RR, version_name)
-        
+    def reverse_order_transects_action(self, subregion_bool, G, C, RR, SSS, version_name):
+        if subregion_bool == False:
+            options = QFileDialog.Options()
+            options |= QFileDialog.DontUseNativeDialog
+            home_dir = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
+            if home_dir:
+                ref_shoreline_path = os.path.join(home_dir, G+C+RR+SSS+'_reference_shoreline.geojson')
+                ref_area_path = os.path.join(home_dir, G+C+RR+SSS+'_reference_polygon.geojson')
+                transects_path_final = os.path.join(home_dir, G+C+RR+SSS+'_transects.geojson')
+                gt.reverse_order(home_dir, transects_path_final, G, C, RR, SSS, version_name)
+        else:
+            options = QFileDialog.Options()
+            options |= QFileDialog.DontUseNativeDialog
+            home_dir = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
+            if home_dir:
+                gt.reverse_order_entire_region(home_dir, G, C, RR, version_name)
+                
     def home(self):
         self.scroll = QScrollArea()             # Scroll Area which contains the widgets, set as the centralWidget
         self.widget = QWidget()                 # Widget that contains the collection of Vertical Box
@@ -201,6 +217,12 @@ class Window(QMainWindow):
         landward = QDoubleSpinBox()
         self.vbox.addWidget(landward, 7, 4)
 
+        ##Flip Transects
+        reverse_order_transects = QPushButton('Reverse Order of Transects')
+        self.vbox.addWidget(reverse_order_transects, 2, 5)
+        reverse_subregion = QCheckBox(text='Entire Subregion')
+        self.vbox.addWidget(reverse_subregion, 3, 5)
+        
         ##setting maximums and minimums
         transect_spacing.setMaximum(500)
         transect_spacing.setMinimum(0)
@@ -249,7 +271,14 @@ class Window(QMainWindow):
                                                                               )
                                          )
 
-
+        reverse_order_transects.clicked.connect(lambda: self.reverse_order_transects_action(reverse_subregion.isChecked(),
+                                                                                            G_text_box.text(),
+                                                                                            C_text_box.text(),
+                                                                                            RR_text_box.text(),
+                                                                                            SSS_text_box.text(),
+                                                                                            version_name_text_box.text()
+                                                                                            )
+                                                )
         
         ##Scroll policies
         self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
