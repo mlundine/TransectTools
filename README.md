@@ -52,6 +52,10 @@ You specify G, C, RR, SSS, and V. Also set the transect length and spacing. Set 
 
 Each function works either on a single shoreline section (SSS) or an entire subregion (RR). If you are running the function on an entire subregion, you do not need to specify an SSS. There is a checkbox to check if you are running on an entire subregion.
 
+For a single shoreline section, feed in the folder containing the reference shoreline and reference polygon.
+
+For an entire subregion, feed in the subregion folder.
+
 Python>=3.10, geopandas, pandas, gdal, shapely, sys, math, os, numpy, warnings, matplotlib
 
 
