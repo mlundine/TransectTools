@@ -48,6 +48,8 @@ If you have a CoastSeg conda environment set up already, this code should work i
 You specify G, C, RR, SSS, and V. Also set the transect length and spacing. Set the length pretty high (e.g., 1000). 
 50 m is the spacing we have been using.
 
+Each function works either on a single shoreline section (SSS) or an entire subregion (RR). If you are running the function on an entire subregion, you do not need to specify an SSS. There is a checkbox to check if you are running on an entire subregion.
+
 Python>=3.10, geopandas, pandas, gdal, shapely, sys, math, os, numpy, warnings, matplotlib
 
 
