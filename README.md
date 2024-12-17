@@ -35,9 +35,11 @@ It should have the following attributes (longshore_length, G, C, RR, SSS, V, tra
 
 transect_id is GCRRSSSVlongshore_length. The longshore_length should have six digits.
 
-# Requirements
+# Requirements/Setup
 
-Python>=3.10, geopandas, pandas, gdal, shapely, sys, math, os, contextily, numpy, warnings, matplotlib
+If you have a CoastSeg conda environment set up already, this code should work in that environment.
+
+Python>=3.10, geopandas, pandas, gdal, shapely, sys, math, os, numpy, warnings, matplotlib
 
 
 

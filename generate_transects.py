@@ -1,15 +1,14 @@
 ##import packages
 from osgeo import ogr, gdal
-gdal.UseExceptions() 
+gdal.UseExceptions()
+import shapely
 from shapely.geometry import MultiLineString, LineString, Point
 from shapely import wkt
 import sys, math
 import os
 import geopandas as gpd
 import pandas as pd
-import contextily as cx
 import numpy as np
-import shapely
 import warnings
 import matplotlib.pyplot as plt
 warnings.filterwarnings("ignore")
