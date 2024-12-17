@@ -39,6 +39,15 @@ transect_id is GCRRSSSVlongshore_length. The longshore_length should have six di
 
 If you have a CoastSeg conda environment set up already, this code should work in that environment.
 
+	conda activate CoastSeg
+
+	cd /path/to/TransectTools
+
+	python transect_tools.py
+
+You specify G, C, RR, SSS, and V. Also set the transect length and spacing. Set the length pretty high (e.g., 1000). 
+50 m is the spacing we have been using.
+
 Python>=3.10, geopandas, pandas, gdal, shapely, sys, math, os, numpy, warnings, matplotlib
 
 
