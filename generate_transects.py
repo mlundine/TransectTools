@@ -254,7 +254,7 @@ def get_point1(pt, bearing, dist):
 
 
 ## get the second end point of a tick
-def getPoint2(pt, bearing, dist):
+def get_point2(pt, bearing, dist):
     bearing = math.radians(bearing)
     x = pt.x + dist * math.cos(bearing)
     y = pt.y + dist * math.sin(bearing)
@@ -330,10 +330,10 @@ def make_transects(input_path,
     for num, pt in enumerate(list_points, 1):
         ## start chainage 0
         if num == 1:
-            angle = getAngle(pt, list_points[num])
-            line_end_1 = getPoint1(pt, angle, tick_length/2)
-            angle = getAngle(line_end_1, pt)
-            line_end_2 = getPoint2(line_end_1, angle, tick_length)
+            angle = get_angle(pt, list_points[num])
+            line_end_1 = get_point1(pt, angle, tick_length/2)
+            angle = get_angle(line_end_1, pt)
+            line_end_2 = get_point2(line_end_1, angle, tick_length)
             tick = LineString([(line_end_1.x, line_end_1.y), (line_end_2.x, line_end_2.y)])
             feat_dfn_ln = layer_out.GetLayerDefn()
             feat_ln = ogr.Feature(feat_dfn_ln)
@@ -343,10 +343,10 @@ def make_transects(input_path,
 
         ## everything in between
         if num < len(list_points) - 1:
-            angle = getAngle(pt, list_points[num])
-            line_end_1 = getPoint1(list_points[num], angle, tick_length/2)
-            angle = getAngle(line_end_1, list_points[num])
-            line_end_2 = getPoint2(line_end_1, angle, tick_length)
+            angle = get_angle(pt, list_points[num])
+            line_end_1 = get_point1(list_points[num], angle, tick_length/2)
+            angle = get_angle(line_end_1, list_points[num])
+            line_end_2 = get_point2(line_end_1, angle, tick_length)
             tick = LineString([(line_end_1.x, line_end_1.y), (line_end_2.x, line_end_2.y)])
             feat_dfn_ln = layer_out.GetLayerDefn()
             feat_ln = ogr.Feature(feat_dfn_ln)
@@ -356,10 +356,10 @@ def make_transects(input_path,
 
         ## end chainage
         if num == len(list_points):
-            angle = getAngle(list_points[num - 2], pt)
-            line_end_1 = getPoint1(pt, angle, tick_length/2)
-            angle = getAngle(line_end_1, pt)
-            line_end_2 = getPoint2(line_end_1, angle, tick_length)
+            angle = get_angle(list_points[num - 2], pt)
+            line_end_1 = get_point1(pt, angle, tick_length/2)
+            angle = get_angle(line_end_1, pt)
+            line_end_2 = get_point2(line_end_1, angle, tick_length)
             tick = LineString([(line_end_1.x, line_end_1.y), (line_end_2.x, line_end_2.y)])
             feat_dfn_ln = layer_out.GetLayerDefn()
             feat_ln = ogr.Feature(feat_dfn_ln)
