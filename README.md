@@ -39,6 +39,8 @@ transect_id is GCRRSSSVlongshore_length. The longshore_length should have six di
 
 If you have a CoastSeg conda environment set up already, this code should work in that environment.
 
+	git clone https://github.com/mlundine/TransectTools.git
+
 	conda activate CoastSeg
 
 	cd /path/to/TransectTools
